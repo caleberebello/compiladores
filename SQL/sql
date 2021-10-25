@@ -1,0 +1,10 @@
+select * from tabelas;
+
+select alfa,omega from tabela, tabela ;
+
+
+select * from alfa where tabelas >  tabela2;
+
+select * from alfa where idade >= 100 group by name order by matricula;
+
+select name from alfa group by name;
