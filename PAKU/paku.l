@@ -1,4 +1,5 @@
 %{
+#define YYSTYPE char*
 #include "paku.tab.h" 
 #include <stdlib.h>
 
@@ -8,19 +9,19 @@ void yyerror(char *s);
 
 %%
 
-[=]									{ return EQUALS; }
-[+]			    					{ return PLUS; }
-[-]		    						{ return MINUS; }
-[/]     							{ return DIVIDE; }
-[*]     							{ return TIMES; }
-[(]     							{ return P_LEFT; }
-[)]     							{ return P_RIGHT; }
+[=]						{ return EQUALS; }
+[+]	    					{ return PLUS; }
+[-]		    				{ return MINUS; }
+[/]     					{ return DIVIDE; }
+[*]     					{ return TIMES; }
+[(]     					{ return P_LEFT; }
+[)]     					{ return P_RIGHT; }
 int|float               			{ return TYPE; }
-[0-9]+|[0-9]+(\.[0-9]+)?  			{ return NUMBER; }
-[a-zA-Z_][_a-zA-Z0-9]*  			{ return IDENTIFIER; }
+[0-9]+|[0-9]+(\.[0-9]+)?  			{ yylval = yytext; return NUMBER; }
+[a-zA-Z_][_a-zA-Z0-9]*  			{ yylval = yytext; return IDENTIFIER; }
 \n                      			{ return EOL; }
-<<EOF>>								{ return END; }
-[[:space:]]							;
+<<EOF>>						{ return END; }
+[[:space:]]					;
 
 %%
 

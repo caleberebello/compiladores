@@ -1,4 +1,6 @@
 %{
+#define YYSTYPE char*
+#include "hash/hash.h"
 #include <stdio.h>
 extern FILE* yyin;
 
@@ -6,6 +8,7 @@ void yyerror(char *s);
 int yylex(void);
 int yyparse();
 extern int yylineno;
+hashtable *table;
 %}
 
 %locations
@@ -61,7 +64,11 @@ FUNCTION:
     ;
  
 DECLARATION:
-    TYPE IDENTIFIER EOL
+    TYPE IDENTIFIER EOL {Variable* variable = (Variable*)malloc(sizeof(Variable));
+                        variable->name = $2;
+                        hash_insert(table, variable->name, variable); 
+                        hash_print(table);
+                        printf("Teste: %s", $2);}
     ;
 
 %%
@@ -73,7 +80,8 @@ void yyerror(char *s)
 }
 
 int main(int argc, char *argv[])
-{
+{   
+    table = hash_init(100);
     /*#ifdef YYDEBUG
         yydebug = 1;
     #endif
