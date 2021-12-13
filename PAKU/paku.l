@@ -1,5 +1,5 @@
 %{
-#define YYSTYPE char*
+
 #include "paku.tab.h" 
 #include <stdlib.h>
 
@@ -7,21 +7,24 @@ void yyerror(char *s);
 %}
 %option yylineno
 
-%%
 
-[=]						{ return EQUALS; }
-[+]	    					{ return PLUS; }
-[-]		    				{ return MINUS; }
-[/]     					{ return DIVIDE; }
-[*]     					{ return TIMES; }
-[(]     					{ return P_LEFT; }
-[)]     					{ return P_RIGHT; }
-int|float               			{ return TYPE; }
-[0-9]+|[0-9]+(\.[0-9]+)?  			{ yylval = yytext; return NUMBER; }
-[a-zA-Z_][_a-zA-Z0-9]*  			{ yylval = yytext; return IDENTIFIER; }
+%%
+"if"								{ return IF;}
+"else"                              { return ELSE;}
+"{"                                 { return O_KEY;}
+"}"                                 { return C_KEY;}
+"="                                 { return EQUALS;}
+">="|"<="|"=="|"!="|[=<>+-/*]        { yylval.op = strdup(yytext); return OPERATOR; }
+[(]     							{ return P_LEFT; }
+[)]     							{ return P_RIGHT; }
+print								{ return PRINT; }
+read                                { return READ; }
+int|float                           { return TYPE; }
+[0-9]+|[0-9]+(\.[0-9]+)?  			{ yylval.val = atof(yytext);return NUMBER; }
+[a-zA-Z_][_a-zA-Z0-9]*  			{ yylval.name = strdup(yytext); return IDENTIFIER; }
 \n                      			{ return EOL; }
-<<EOF>>						{ return END; }
-[[:space:]]					;
+<<EOF>>								{ return END; }
+[[:space:]]							;
 
 %%
 

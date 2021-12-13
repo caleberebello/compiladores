@@ -1,96 +1,114 @@
 %{
-#define YYSTYPE char*
-#include "hash/hash.h"
 #include <stdio.h>
+#include "hashtable.h"
+#include "astgen.h"
 extern FILE* yyin;
 
 void yyerror(char *s);
 int yylex(void);
 int yyparse();
+
+#define YYPARSE_PARAM astDest
+
 extern int yylineno;
-hashtable *table;
+hashtable *htable;
 %}
+
+%union {
+    char *name;
+    double val;
+    char* op;
+    struct AstElement* ast;
+}
 
 %locations
 
-%token PLUS MINUS DIVIDE TIMES EQUALS IDENTIFIER TYPE NUMBER EOL END
+%token EQUALS EOL END
 %token P_LEFT P_RIGHT
+%token PRINT READ
+%token IF ELSE 
+%token O_KEY C_KEY 
 
 %left P_LEFT P_RIGHT
-%left PLUS MINUS
-%left TIMES DIVIDE
+
+%token <val> NUMBER 
+%token <name> IDENTIFIER TYPE
+%token <op> OPERATOR
+%type<ast> program block statement statements if_stmt attribution  print_stmt read_stmt declaration expression EOL
+
 
 %%
 
-PROGRAM:
-    STATEMENT END{YYACCEPT;}
+program: statements END { (*(struct AstElement**)astDest) = $1; YYACCEPT;};
+
+block: O_KEY statements C_KEY { $$ = $2; };
+
+statements:  statement {$$=0;}
+    | statements statement {$$=makeStatement($1, $2);}
+    | END
     ;
 
-STATEMENT:
-    LINE
-    | STATEMENT STATEMENT
-    ;
-
-LINE:
-    ATTRIBUTION
-    | FUNCTION
-    | DECLARATION
+statement: 
+    declaration {$$=$1;}
+    | attribution {$$=$1;}
+    | if_stmt {$$=$1;}
+    | read_stmt {$$=$1;}
+    | print_stmt {$$=$1;}
+    | block {$$=$1;}
     | EOL
     ;
 
-ATTRIBUTION:
-    IDENTIFIER EQUALS CALC EOL
-    | IDENTIFIER EQUALS IDENTIFIER_CALC EOL
+if_stmt: IF P_LEFT expression P_RIGHT block EOL {$$=makeIf($3, $5, 0);}
+    | IF P_LEFT expression P_RIGHT block ELSE block EOL {$$=makeIf($3, $5, $7);}
     ;
 
-IDENTIFIER_CALC:
-    IDENTIFIER PLUS IDENTIFIER
-    | IDENTIFIER MINUS IDENTIFIER
-    | IDENTIFIER DIVIDE IDENTIFIER
-    | IDENTIFIER TIMES IDENTIFIER
+attribution: IDENTIFIER EQUALS expression EOL {$$=makeAssignment($1, $3);}
     ;
 
-CALC:
-    NUMBER
-    | CALC PLUS CALC
-    | CALC MINUS CALC
-    | CALC DIVIDE CALC
-    | CALC TIMES CALC
-    | P_LEFT CALC P_RIGHT
+expression:
+    NUMBER {$$=makeExpByNum($1);}
+    | IDENTIFIER {$$=makeExpByName($1);}
+    | expression OPERATOR expression  {$$=makeExp($1, $3, $2);}
+    | P_LEFT expression P_RIGHT {$$=$2;}
     ;
 
-FUNCTION:
-    IDENTIFIER P_LEFT IDENTIFIER P_RIGHT EOL
+print_stmt:
+    PRINT P_LEFT IDENTIFIER P_RIGHT EOL {$$=makePrint($3);}
     ;
- 
-DECLARATION:
-    TYPE IDENTIFIER EOL {Variable* variable = (Variable*)malloc(sizeof(Variable));
-                        variable->name = $2;
-                        hash_insert(table, variable->name, variable); 
-                        hash_print(table);
-                        printf("Teste: %s", $2);}
+read_stmt:
+    READ P_LEFT IDENTIFIER P_RIGHT EOL  {$$=makeRead($3);}
+    ;
+
+declaration:
+    TYPE IDENTIFIER EOL {$$=makeDeclaration($1,$2);}
     ;
 
 %%
 
+#include "astexec.h"
+
 void yyerror(char *s)
 {
-	printf("Error: %s\n", s);
-    printf("Line: %d\n", yylineno);
+	printf("linha: %d :Error: %s\n", yylineno, s);
 }
 
 int main(int argc, char *argv[])
-{   
-    table = hash_init(100);
-    /*#ifdef YYDEBUG
-        yydebug = 1;
+{
+    struct AstElement *a = 0;
+    htable = hash_init(101);
+    // 1 para debug
+    #ifdef YYDEBUG
+        yydebug = 0;
     #endif
-	*/
+
     int result;
     yyin = fopen(argv[1], "r");
-    result = yyparse();
+    result = yyparse(&a);
     if (result == 0){
-        printf("Correct\n");
-    }
+        printf("compilado com sucesso \n");
+    } 
+
+    execStmt(htable, a);
+ 
 	return 0;
 }
